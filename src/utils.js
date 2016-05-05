@@ -1,4 +1,4 @@
-function hashArray(field, arr) {
+export function hashArray(field, arr) {
 	return arr.reduce(function(memo, extended, key) {
 		memo[extended[field]] = extended;
 		return memo;
