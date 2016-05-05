@@ -6,6 +6,8 @@ It helps you write applications that communicate with REST Api with very little 
 
 Verne requires ES6 classes and ES7 field initalizers to run. It is recommended to use Verne in a Webpack/Babel environment.
 
+![](/docs/assets/verne_moon.png)
+
 This project is incomplete! You are welcome to look at the docs and give feedback & suggestions.
 
 ## The Gist

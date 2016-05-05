@@ -13,3 +13,4 @@
   * [GenericConnector](/docs/api/GenericConnector.md)
   * [ReduxConnector](/docs/api/ReduxConnector.md)
 * [Change Log](/CHANGELOG.md)
+* [About](/docs/About.md)
