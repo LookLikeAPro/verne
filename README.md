@@ -16,9 +16,9 @@ Subclass a connector, and configure its endpoint to a REST conforming server.
 
 The standard REST actions: `list, create, retrieve, update, destroy` are now avaliable.
 
-Get notified by delegate methods `listPayload`, `listFail`, `createPayload`, `createFail` to update the application UI.
+Get notified by delegate methods `listPayload`, `listFail`, `createPayload`, `createFail`, etc to update the application UI.
 
-```
+```javascript
 import {GenericConnector} from "verne";
 
 class VendorConnector extends GenericConnector {
@@ -44,7 +44,7 @@ vendorConnector.list();
 
 Or, use Verne for its original purpose, acting alongside Redux.
 
-```
+```javascript
 import {combineReducers, createStore} from "redux";
 import {ReduxConnector} from "verne";
 import thunk from "redux-thunk";
