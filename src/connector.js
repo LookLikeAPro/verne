@@ -1,6 +1,7 @@
 import {parseBodyToJson} from "./responseParsers";
 import {hashArray} from "./utils";
 import {compileUrl, removeUrlParams} from "./urlCompiler";
+import autobind from "./utils/autobind";
 
 class ConnectorConfiguration {
 	httpClient = fetch;
@@ -9,10 +10,15 @@ class ConnectorConfiguration {
 	uniqueIdentifier = "id";
 	uniqueDispatchNamespace = "";
 	model = "";
+	headers = {
+		Accept: "application/json",
+		"Content-Type": "application/json"
+	};
 	constructor() {
 		if (!self.uniqueDispatchNamespace) {
 			self.uniqueDispatchNamespace = self.model;
 		}
+		autobind(this);
 	}
 }
 
@@ -20,7 +26,7 @@ class ConnectorConfiguration {
 
 const RESTCONNECTORCONSTANT = "RESTCONNECTORCONSTANT";
 
-class Connector extends ConnectorConfiguration {
+export default class Connector extends ConnectorConfiguration {
 	state = {
 		entities: {},
 		createResults: {},
@@ -96,10 +102,19 @@ class Connector extends ConnectorConfiguration {
 			return state;
 		}
 	}
+	constructCommonParams(params = {}) {
+		return {
+			headers: {
+				...this.headers,
+				...params.headers
+			}
+		};
+	}
 	constructListParams(params = {}) {
 		const url = compileUrl(this.endpoint, params);
 		const filteredParams = removeUrlParams(this.endpoint, this.params);
 		return {
+			...this.constructCommonParams(),
 			url: url,
 			params: filteredParams
 		};
@@ -108,7 +123,8 @@ class Connector extends ConnectorConfiguration {
 		const listRequestParams = this.constructListParams(params);
 		return this.httpClient(listRequestParams.url, {
 			method: "GET",
-			params: listRequestParams.params
+			params: listRequestParams.params,
+			headers: params.headers
 		}).then(this.parseBody);
 	}
 	selectListDispatch(action) {
@@ -181,6 +197,7 @@ class Connector extends ConnectorConfiguration {
 		const url = compileUrl(this.endpoint, params);
 		const filteredParams = removeUrlParams(this.endpoint, this.params);
 		return {
+			...this.constructCommonParams(),
 			url: url,
 			params: filteredParams
 		};
@@ -189,7 +206,8 @@ class Connector extends ConnectorConfiguration {
 		const listRequestParams = this.constructListParams(params);
 		return this.httpClient(listRequestParams.url, {
 			method: "POST",
-			params: listRequestParams.params
+			params: listRequestParams.params,
+			headers: params.headers
 		}).then(this.parseBody);
 	}
 	selectCreateDispatch(action) {
@@ -257,6 +275,7 @@ class Connector extends ConnectorConfiguration {
 		const url = compileUrl(this.endpoint, params);
 		const filteredParams = removeUrlParams(this.endpoint, this.params);
 		return {
+			...this.constructCommonParams(),
 			url: url,
 			params: filteredParams
 		};
@@ -264,8 +283,9 @@ class Connector extends ConnectorConfiguration {
 	retrieve(params = {}) {
 		const listRequestParams = this.constructListParams(params);
 		return this.httpClient(listRequestParams.url, {
-			method: "POST",
-			params: listRequestParams.params
+			method: "GET",
+			params: listRequestParams.params,
+			headers: params.headers
 		}).then(this.parseBody);
 	}
 	selectRetrieveDispatch(action) {
@@ -277,10 +297,10 @@ class Connector extends ConnectorConfiguration {
 		const processedResults = this.selectListDispatch(action);
 		return {
 			...state,
-			createResults: {
-				...state.createResults,
-				[processedResults.page]: {
-					...(state.listResults[processedResults.page] || {}),
+			retrieveResults: {
+				...state.retrieveResults,
+				[processedResults.params[this.uniqueIdentifier]]: {
+					...(state.retrieveResults[processedResults.params[this.uniqueIdentifier]] || {}),
 					loading: true
 				}
 			}
@@ -288,23 +308,19 @@ class Connector extends ConnectorConfiguration {
 	}
 	selectRetrievePayload(action) {
 		return {
-			page: action.params.page || 1,
-			count: action.data.count,
-			next: action.data.next,
-			previous: action.data.previous,
-			results: action.data.results
+			...action
 		};
 	}
 	retrievePayload(state, action) {
-		const processedResults = this.selectListPayload(action);
+		const processedResults = this.selectRetrievePayload(action);
 		return {
 			...state,
-			createResults: {
-				...state.createResults,
-				[processedResults.page]: {
+			retrieveResults: {
+				...state.retrieveResults,
+				[processedResults.params[this.uniqueIdentifier]]: {
 					loading: false,
 					error: false,
-					data: processedResults.results
+					data: processedResults.data
 				}
 			}
 		};
@@ -316,7 +332,7 @@ class Connector extends ConnectorConfiguration {
 		};
 	}
 	retrieveFail(state, action) {
-		const processedResults = this.selectListFail(action);
+		const processedResults = this.selectRetrieveFail(action);
 		return {
 			...state,
 			createResults: {
@@ -333,6 +349,7 @@ class Connector extends ConnectorConfiguration {
 		const url = compileUrl(this.endpoint, params);
 		const filteredParams = removeUrlParams(this.endpoint, this.params);
 		return {
+			...this.constructCommonParams(),
 			url: url,
 			params: filteredParams
 		};
@@ -341,7 +358,8 @@ class Connector extends ConnectorConfiguration {
 		const listRequestParams = this.constructListParams(params);
 		return this.httpClient(listRequestParams.url, {
 			method: "POST",
-			params: listRequestParams.params
+			params: listRequestParams.params,
+			headers: params.headers
 		}).then(this.parseBody);
 	}
 	selectUpdateDispatch(action) {
@@ -409,6 +427,7 @@ class Connector extends ConnectorConfiguration {
 		const url = compileUrl(this.endpoint, params);
 		const filteredParams = removeUrlParams(this.endpoint, this.params);
 		return {
+			...this.constructCommonParams(),
 			url: url,
 			params: filteredParams
 		};
@@ -417,7 +436,8 @@ class Connector extends ConnectorConfiguration {
 		const listRequestParams = this.constructListParams(params);
 		return this.httpClient(listRequestParams.url, {
 			method: "POST",
-			params: listRequestParams.params
+			params: listRequestParams.params,
+			headers: params.headers
 		}).then(this.parseBody);
 	}
 	selectDestroyDispatch(action) {
@@ -550,153 +570,5 @@ class Connector extends ConnectorConfiguration {
 			error: response.responseBody,
 			params
 		});
-	}
-}
-
-export class GenericConnector extends Connector {
-	dispatch(action) {
-		this.state = this.reduce(this.state, action);
-	}
-	list(params = {}) {
-		this.dispatch({type: this.constants.list.dispatch, params});
-		return super.list(params).then((response) => {
-			if (response.status >= 200 && response.status < 300) {
-				this.listReturnedPayload(response, params);
-			}
-			else {
-				this.listReturnedFail(response, params);
-			}
-		});
-	}
-	create(params = {}) {
-		this.dispatch({type: this.constants.create.dispatch, params});
-		return super.create(params).then((response) => {
-			if (response.status >= 200 && response.status < 300) {
-				this.createReturnedPayload(response, params);
-			}
-			else {
-				this.createReturnedFail(response, params);
-			}
-		});
-	}
-	retrieve(params = {}) {
-		this.dispatch({type: this.constants.retrieve.dispatch, params});
-		return super.retrieve(params).then((response) => {
-			if (response.status >= 200 && response.status < 300) {
-				this.retrieveReturnedPayload(response, params);
-			}
-			else {
-				this.retrieveReturnedFail(response, params);
-			}
-		});
-	}
-	update(params = {}) {
-		this.dispatch({type: this.constants.update.dispatch, params});
-		return super.update(params).then((response) => {
-			if (response.status >= 200 && response.status < 300) {
-				this.updateReturnedPayload(response, params);
-			}
-			else {
-				this.updateReturnedFail(response, params);
-			}
-		});
-	}
-	destroy(params = {}) {
-		this.dispatch({type: this.constants.destroy.dispatch, params});
-		return super.destroy(params).then((response) => {
-			if (response.status >= 200 && response.status < 300) {
-				this.destroyReturnedPayload(response, params);
-			}
-			else {
-				this.destroyReturnedFail(response, params);
-			}
-		});
-	}
-}
-
-export class ReduxConnector extends Connector {
-	fakeBindRedux(dispatch, getState) {
-		this.dispatch = dispatch;
-		this.getState = getState;
-	}
-	list(params = {}) {
-		return (dispatch, getState) => {
-			this.fakeBindRedux(dispatch, getState);
-			dispatch({type: this.constants.list.dispatch, params});
-			super.list(params).then(function(response) {
-				if (response.status >= 200 && response.status < 300) {
-					this.fakeBindRedux(dispatch, getState);
-					this.listReturnedPayload(response, params);
-				}
-				else {
-					this.fakeBindRedux(dispatch, getState);
-					this.listReturnedFail(response, params);
-				}
-			});
-		};
-	}
-	create(params = {}) {
-		return (dispatch, getState) => {
-			this.fakeBindRedux(dispatch, getState);
-			dispatch({type: this.constants.create.dispatch, params});
-			super.create(params).then(function(response) {
-				if (response.status >= 200 && response.status < 300) {
-					this.fakeBindRedux(dispatch, getState);
-					this.createReturnedPayload(response, params);
-				}
-				else {
-					this.fakeBindRedux(dispatch, getState);
-					this.createReturnedFail(response, params);
-				}
-			});
-		};
-	}
-	retrieve(params = {}) {
-		return (dispatch, getState) => {
-			this.fakeBindRedux(dispatch, getState);
-			dispatch({type: this.constants.retrieve.dispatch, params});
-			super.retrieve(params).then(function(response) {
-				if (response.status >= 200 && response.status < 300) {
-					this.fakeBindRedux(dispatch, getState);
-					this.retrieveReturnedPayload(response, params);
-				}
-				else {
-					this.fakeBindRedux(dispatch, getState);
-					this.retrieveReturnedFail(response, params);
-				}
-			});
-		};
-	}
-	update(params = {}) {
-		return (dispatch, getState) => {
-			this.fakeBindRedux(dispatch, getState);
-			dispatch({type: this.constants.update.dispatch, params});
-			super.update(params).then(function(response) {
-				if (response.status >= 200 && response.status < 300) {
-					this.fakeBindRedux(dispatch, getState);
-					this.updateReturnedPayload(response, params);
-				}
-				else {
-					this.fakeBindRedux(dispatch, getState);
-					this.updateReturnedFail(response, params);
-				}
-			});
-		};
-	}
-	destroy(params = {}) {
-		return (dispatch, getState) => {
-			this.fakeBindRedux(dispatch, getState);
-			dispatch({type: this.constants.destroy.dispatch, params});
-			super.destroy(params).then(function(response) {
-				if (response.status >= 200 && response.status < 300) {
-					this.fakeBindRedux(dispatch, getState);
-					this.destroyReturnedPayload(response, params);
-				}
-				else {
-					this.fakeBindRedux(dispatch, getState);
-					this.destroyReturnedFail(response, params);
-				}
-			});
-		};
 	}
 }
