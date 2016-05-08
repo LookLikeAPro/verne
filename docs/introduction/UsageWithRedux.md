@@ -6,7 +6,7 @@ Using it with redux is very simple.
 
 During store setup, add the verne connectors as reducers. Make sure the middleware `redux-thunk` is included.
 
-```javascript
+```js
 import {combineReducers, createStore} from "redux";
 import {ReduxConnector} from "verne";
 import thunk from "redux-thunk";

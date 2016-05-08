@@ -10,7 +10,7 @@ Call methods `list, create, retrieve, update, destroy`
 
 Subclass delegate methods `listPayload`, `listFail`, `createPayload`, `createFail`, etc to update the application UI.
 
-```javascript
+```js
 import {GenericConnector} from "verne";
 
 class VendorConnector extends GenericConnector {

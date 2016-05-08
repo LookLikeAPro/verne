@@ -1,6 +1,6 @@
 import {parseBodyToJson} from "./responseParsers";
-import {hashArray} from "./utils";
-import {compileUrl, removeUrlParams} from "./urlCompiler";
+import {hashArray} from "./utils/entities";
+import {compileUrl, removeUrlParams, buildQueryString} from "./urlCompiler";
 import autobind from "./utils/autobind";
 
 class ConnectorConfiguration {
@@ -29,11 +29,7 @@ const RESTCONNECTORCONSTANT = "RESTCONNECTORCONSTANT";
 export default class Connector extends ConnectorConfiguration {
 	state = {
 		entities: {},
-		createResults: {},
-		retrieveResults: {},
-		updateResults: {},
-		destroyResults: {},
-		listResults: {}
+		list: {}
 	}
 	constructor() {
 		super();
@@ -111,8 +107,9 @@ export default class Connector extends ConnectorConfiguration {
 		};
 	}
 	constructListParams(params = {}) {
-		const url = compileUrl(this.endpoint, params);
-		const filteredParams = removeUrlParams(this.endpoint, this.params);
+		const filteredParams = removeUrlParams(this.endpoint, params);
+		const urlBase = compileUrl(this.endpoint, params);
+		const url = urlBase + "?" + buildQueryString(filteredParams);
 		return {
 			...this.constructCommonParams(),
 			url: url,
@@ -137,11 +134,11 @@ export default class Connector extends ConnectorConfiguration {
 		const processedResults = this.selectListDispatch(action);
 		return {
 			...state,
-			listResults: {
-				...state.listResults,
+			list: {
+				...state.list,
 				[processedResults.page]: {
-					...(state.listResults[processedResults.page] || {}),
-					loading: true
+					...(state.list[processedResults.page] || {}),
+					pending: true
 				}
 			}
 		};
@@ -157,21 +154,31 @@ export default class Connector extends ConnectorConfiguration {
 	}
 	listPayload(state, action) {
 		const processedResults = this.selectListPayload(action);
+		const dictionaryOfResults = hashArray(this.uniqueIdentifier, processedResults.results);
+		for (var key in dictionaryOfResults) {
+			if (dictionaryOfResults.hasOwnProperty(key)) {
+				dictionaryOfResults[key] = {
+					data: dictionaryOfResults[key]
+				};
+			}
+		}
 		return {
 			...state,
 			entities: {
 				...state.entities,
-				...hashArray(this.uniqueIdentifier, processedResults.results)
+				...dictionaryOfResults
 			},
-			listResults: {
-				...state.listResults,
+			list: {
+				...state.list,
 				[processedResults.page]: {
-					loading: false,
-					error: false,
-					data: processedResults.results
+					pending: false,
+					failed: false,
+					count: processedResults.count,
+					data: Object.keys(dictionaryOfResults)
 				}
 			}
 		};
+		return state;
 	}
 	selectListFail(action) {
 		return {
@@ -183,12 +190,12 @@ export default class Connector extends ConnectorConfiguration {
 		const processedResults = this.selectListFail(action);
 		return {
 			...state,
-			listResults: {
-				...state.listResults,
+			list: {
+				...state.list,
 				[processedResults.page]: {
-					...(state.listResults[processedResults.page] || {}),
-					loading: false,
-					error: false
+					...(state.list[processedResults.page] || {}),
+					pending: false,
+					failed: true
 				}
 			}
 		};
@@ -281,10 +288,10 @@ export default class Connector extends ConnectorConfiguration {
 		};
 	}
 	retrieve(params = {}) {
-		const listRequestParams = this.constructListParams(params);
-		return this.httpClient(listRequestParams.url, {
+		const retrieveRequestParams = this.constructRetrieveParams(params);
+		return this.httpClient(retrieveRequestParams.url, {
 			method: "GET",
-			params: listRequestParams.params,
+			params: retrieveRequestParams.params,
 			headers: params.headers
 		}).then(this.parseBody);
 	}
@@ -297,11 +304,11 @@ export default class Connector extends ConnectorConfiguration {
 		const processedResults = this.selectListDispatch(action);
 		return {
 			...state,
-			retrieveResults: {
-				...state.retrieveResults,
+			entities: {
+				...state.entities,
 				[processedResults.params[this.uniqueIdentifier]]: {
-					...(state.retrieveResults[processedResults.params[this.uniqueIdentifier]] || {}),
-					loading: true
+					...(state.entities[processedResults.params[this.uniqueIdentifier]] || {}),
+					retrievePending: true
 				}
 			}
 		};
@@ -315,11 +322,12 @@ export default class Connector extends ConnectorConfiguration {
 		const processedResults = this.selectRetrievePayload(action);
 		return {
 			...state,
-			retrieveResults: {
-				...state.retrieveResults,
+			entities: {
+				...state.entities,
 				[processedResults.params[this.uniqueIdentifier]]: {
-					loading: false,
-					error: false,
+					...(state.entities[processedResults.params[this.uniqueIdentifier]] || {}),
+					retrievePending: false,
+					retrieveFailed: false,
 					data: processedResults.data
 				}
 			}
@@ -335,12 +343,12 @@ export default class Connector extends ConnectorConfiguration {
 		const processedResults = this.selectRetrieveFail(action);
 		return {
 			...state,
-			createResults: {
-				...state.createResults,
-				[processedResults.page]: {
-					...(state.createResults[processedResults.page] || {}),
-					loading: false,
-					error: false
+			entities: {
+				...state.entities,
+				[processedResults.params[this.uniqueIdentifier]]: {
+					...(state.entities[processedResults.params[this.uniqueIdentifier]] || {}),
+					retrievePending: false,
+					retrieveFailed: false
 				}
 			}
 		};

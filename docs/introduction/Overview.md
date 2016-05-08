@@ -22,7 +22,7 @@ Every connector needs two properties:
 
 - `uniqueIdentifier` is the unique key used by the model. Defaults to `id`.
 
-```javascript
+```js
 class ModelConnector extends GenericConnector {
   endpoint = "/api/vendors/:slug";
   uniqueIdentifier = "id";
