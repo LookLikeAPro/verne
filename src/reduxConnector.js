@@ -9,7 +9,7 @@ export default class ReduxConnector extends Connector {
 		return (dispatch, getState) => {
 			this.fakeBindRedux(dispatch, getState);
 			dispatch({type: this.constants.list.dispatch, params});
-			super.list(params).then((response) => {
+			this.makeRequest("list", params).then((response) => {
 				if (response.status >= 200 && response.status < 300) {
 					this.fakeBindRedux(dispatch, getState);
 					this.listReturnedPayload(response, params);
@@ -25,7 +25,7 @@ export default class ReduxConnector extends Connector {
 		return (dispatch, getState) => {
 			this.fakeBindRedux(dispatch, getState);
 			dispatch({type: this.constants.create.dispatch, params});
-			super.create(params).then((response) => {
+			this.makeRequest("create", params).then((response) => {
 				if (response.status >= 200 && response.status < 300) {
 					this.fakeBindRedux(dispatch, getState);
 					this.createReturnedPayload(response, params);
@@ -41,7 +41,7 @@ export default class ReduxConnector extends Connector {
 		return (dispatch, getState) => {
 			this.fakeBindRedux(dispatch, getState);
 			dispatch({type: this.constants.retrieve.dispatch, params});
-			super.retrieve(params).then((response) => {
+			this.makeRequest("retrieve", params).then((response) => {
 				if (response.status >= 200 && response.status < 300) {
 					this.fakeBindRedux(dispatch, getState);
 					this.retrieveReturnedPayload(response, params);
@@ -57,7 +57,7 @@ export default class ReduxConnector extends Connector {
 		return (dispatch, getState) => {
 			this.fakeBindRedux(dispatch, getState);
 			dispatch({type: this.constants.update.dispatch, params});
-			super.update(params).then((response) => {
+			this.makeRequest("update", params).then((response) => {
 				if (response.status >= 200 && response.status < 300) {
 					this.fakeBindRedux(dispatch, getState);
 					this.updateReturnedPayload(response, params);
@@ -73,7 +73,7 @@ export default class ReduxConnector extends Connector {
 		return (dispatch, getState) => {
 			this.fakeBindRedux(dispatch, getState);
 			dispatch({type: this.constants.destroy.dispatch, params});
-			super.destroy(params).then(function(response) {
+			this.makeRequest("destroy", params).then(function(response) {
 				if (response.status >= 200 && response.status < 300) {
 					this.fakeBindRedux(dispatch, getState);
 					this.destroyReturnedPayload(response, params);

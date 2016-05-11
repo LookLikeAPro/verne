@@ -1,7 +1,7 @@
 import {parseBodyToJson} from "./responseParsers";
 import {hashArray} from "./utils/entities";
 import {compileUrl, removeUrlParams, buildQueryString} from "./urlCompiler";
-import autobind from "./utils/autobind";
+import autobind from "./utils/autoBind";
 
 class ConnectorConfiguration {
 	httpClient = fetch;
@@ -34,6 +34,13 @@ export default class Connector extends ConnectorConfiguration {
 	constructor() {
 		super();
 		const ACTIONPREFIX = RESTCONNECTORCONSTANT+this.uniqueDispatchNamespace;
+		this.createParamMethods = {
+			retrieve: this.constructRetrieveParams,
+			update: this.constructUpdateParams,
+			destroy: this.constructDestroyParams,
+			create: this.constructCreateParams,
+			list: this.constructListParams
+		};
 		this.constants = {
 			list: {
 				dispatch: ACTIONPREFIX+".LIST.DISPATCH",
@@ -106,6 +113,14 @@ export default class Connector extends ConnectorConfiguration {
 			}
 		};
 	}
+	makeRequest(action, params = {}) {
+		const requestParams = this.createParamMethods[action](params);
+		return this.httpClient(requestParams.url, {
+			method: requestParams.method,
+			params: requestParams.params,
+			headers: params.headers
+		}).then(this.parseBody);
+	}
 	constructListParams(params = {}) {
 		const filteredParams = removeUrlParams(this.endpoint, params);
 		const urlBase = compileUrl(this.endpoint, params);
@@ -113,16 +128,9 @@ export default class Connector extends ConnectorConfiguration {
 		return {
 			...this.constructCommonParams(),
 			url: url,
-			params: filteredParams
+			params: filteredParams,
+			method: "GET"
 		};
-	}
-	list(params = {}) {
-		const listRequestParams = this.constructListParams(params);
-		return this.httpClient(listRequestParams.url, {
-			method: "GET",
-			params: listRequestParams.params,
-			headers: params.headers
-		}).then(this.parseBody);
 	}
 	selectListDispatch(action) {
 		return {
@@ -178,7 +186,6 @@ export default class Connector extends ConnectorConfiguration {
 				}
 			}
 		};
-		return state;
 	}
 	selectListFail(action) {
 		return {
@@ -206,16 +213,9 @@ export default class Connector extends ConnectorConfiguration {
 		return {
 			...this.constructCommonParams(),
 			url: url,
-			params: filteredParams
+			params: filteredParams,
+			method: "POST"
 		};
-	}
-	create(params = {}) {
-		const listRequestParams = this.constructListParams(params);
-		return this.httpClient(listRequestParams.url, {
-			method: "POST",
-			params: listRequestParams.params,
-			headers: params.headers
-		}).then(this.parseBody);
 	}
 	selectCreateDispatch(action) {
 		return {
@@ -284,16 +284,9 @@ export default class Connector extends ConnectorConfiguration {
 		return {
 			...this.constructCommonParams(),
 			url: url,
-			params: filteredParams
+			params: filteredParams,
+			method: "GET"
 		};
-	}
-	retrieve(params = {}) {
-		const retrieveRequestParams = this.constructRetrieveParams(params);
-		return this.httpClient(retrieveRequestParams.url, {
-			method: "GET",
-			params: retrieveRequestParams.params,
-			headers: params.headers
-		}).then(this.parseBody);
 	}
 	selectRetrieveDispatch(action) {
 		return {
@@ -359,16 +352,9 @@ export default class Connector extends ConnectorConfiguration {
 		return {
 			...this.constructCommonParams(),
 			url: url,
-			params: filteredParams
+			params: filteredParams,
+			method: "PUT"
 		};
-	}
-	update(params = {}) {
-		const listRequestParams = this.constructListParams(params);
-		return this.httpClient(listRequestParams.url, {
-			method: "POST",
-			params: listRequestParams.params,
-			headers: params.headers
-		}).then(this.parseBody);
 	}
 	selectUpdateDispatch(action) {
 		return {
@@ -437,16 +423,9 @@ export default class Connector extends ConnectorConfiguration {
 		return {
 			...this.constructCommonParams(),
 			url: url,
-			params: filteredParams
+			params: filteredParams,
+			method: "DELETE"
 		};
-	}
-	destroy(params = {}) {
-		const listRequestParams = this.constructListParams(params);
-		return this.httpClient(listRequestParams.url, {
-			method: "POST",
-			params: listRequestParams.params,
-			headers: params.headers
-		}).then(this.parseBody);
 	}
 	selectDestroyDispatch(action) {
 		return {
