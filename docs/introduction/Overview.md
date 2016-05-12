@@ -25,10 +25,47 @@ Every connector needs two properties:
 ```js
 class ModelConnector extends GenericConnector {
   endpoint = "/api/vendors/:slug";
-  uniqueIdentifier = "id";
+  uniqueIdentifier = "slug";
   ...
 }
 
 ```
 
 ### Actions
+
+Actions are connector methods which can affect change to the server and the connector state. The default actions include `list, create, retrieve, update, destroy`, but more can be added easily.
+
+### State
+
+Each connector maintains its state as a dictionary. In `GenericConnector`, `state` is a connector field. In `ReduxConnector`, the state is stored via Redux.
+
+The state looks like the following:
+
+```js
+{
+  entities: {
+    34: {
+      retrievePending: false,
+      retrieveFailed: false,
+      updatePending: false,
+      updateFailed: false,
+      destroyPending: false,
+      destroyFailed: false,
+      createPending: false,
+      createFailed: false,
+      data: {
+        id: 34,
+        name: "a thing"
+      }
+    }
+  },
+  list: {
+    1: {
+      pending: false,
+      failed: false,
+      data: [1,2,3 ...]
+    }
+  }
+}
+```
+The keys of the entities dictionary and the list is the field designated as `uniqueIdentifier` on the model.
