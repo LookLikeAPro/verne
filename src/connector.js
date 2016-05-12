@@ -2,6 +2,7 @@ import {parseBodyToJson} from "./responseParsers";
 import {hashArray} from "./utils/entities";
 import {compileUrl, removeUrlParams, buildQueryString} from "./urlCompiler";
 import autobind from "./utils/autoBind";
+import {capitalizeFirstLetter} from "./utils/string";
 
 class ConnectorConfiguration {
 	httpClient = fetch;
@@ -31,43 +32,9 @@ export default class Connector extends ConnectorConfiguration {
 		entities: {},
 		list: {}
 	}
+	constants = {};
 	constructor() {
 		super();
-		const ACTIONPREFIX = RESTCONNECTORCONSTANT+this.uniqueDispatchNamespace;
-		this.createParamMethods = {
-			retrieve: this.constructRetrieveParams,
-			update: this.constructUpdateParams,
-			destroy: this.constructDestroyParams,
-			create: this.constructCreateParams,
-			list: this.constructListParams
-		};
-		this.constants = {
-			list: {
-				dispatch: ACTIONPREFIX+".LIST.DISPATCH",
-				payload: ACTIONPREFIX+".LIST.PAYLOAD",
-				fail: ACTIONPREFIX+".LIST.FAIL"
-			},
-			create: {
-				dispatch: ACTIONPREFIX+".CREATE.DISPATCH",
-				payload: ACTIONPREFIX+".CREATE.PAYLOAD",
-				fail: ACTIONPREFIX+".CREATE.FAIL"
-			},
-			retrieve: {
-				dispatch: ACTIONPREFIX+".RETRIEVE.DISPATCH",
-				payload: ACTIONPREFIX+".RETRIEVE.PAYLOAD",
-				fail: ACTIONPREFIX+".RETRIEVE.FAIL"
-			},
-			update: {
-				dispatch: ACTIONPREFIX+".UPDATE.DISPATCH",
-				payload: ACTIONPREFIX+".UPDATE.PAYLOAD",
-				fail: ACTIONPREFIX+".UPDATE.FAIL"
-			},
-			destroy: {
-				dispatch: ACTIONPREFIX+".DESTROY.DISPATCH",
-				payload: ACTIONPREFIX+".DESTROY.PAYLOAD",
-				fail: ACTIONPREFIX+".DESTROY.FAIL"
-			}
-		};
 	}
 	reduce(state = this.state, action) {
 		switch (action.type) {
@@ -114,7 +81,7 @@ export default class Connector extends ConnectorConfiguration {
 		};
 	}
 	makeRequest(action, params = {}) {
-		const requestParams = this.createParamMethods[action](params);
+		const requestParams = this["construct"+capitalizeFirstLetter(action)+"Params"](params);
 		return this.httpClient(requestParams.url, {
 			method: requestParams.method,
 			params: requestParams.params,
@@ -469,10 +436,7 @@ export default class Connector extends ConnectorConfiguration {
 		};
 	}
 	selectDestroyFail(action) {
-		return {
-			...action,
-			page: action.params.page || 1
-		};
+		return action;
 	}
 	destroyFail(state, action) {
 		const processedResults = this.selectListFail(action);
@@ -488,74 +452,31 @@ export default class Connector extends ConnectorConfiguration {
 			}
 		};
 	}
-	listReturnedPayload(response, params) {
-		this.dispatch({
-			type: this.constants.list.payload,
-			data: response.responseBody,
-			params
-		});
-	}
-	listReturnedFail(response, params) {
-		this.dispatch({
-			type: this.constants.list.fail,
-			error: response.responseBody,
-			params
-		});
-	}
-	createReturnedPayload(response, params) {
-		this.dispatch({
-			type: this.constants.create.payload,
-			data: response.responseBody,
-			params
-		});
-	}
-	createReturnedFail(response, params) {
-		this.dispatch({
-			type: this.constants.create.fail,
-			error: response.responseBody,
-			params
-		});
-	}
-	retrieveReturnedPayload(response, params) {
-		this.dispatch({
-			type: this.constants.retrieve.payload,
-			data: response.responseBody,
-			params
-		});
-	}
-	retrieveReturnedFail(response, params) {
-		this.dispatch({
-			type: this.constants.retrieve.fail,
-			error: response.responseBody,
-			params
-		});
-	}
-	updateReturnedPayload(response, params) {
-		this.dispatch({
-			type: this.constants.update.payload,
-			data: response.responseBody,
-			params
-		});
-	}
-	updateReturnedFail(response, params) {
-		this.dispatch({
-			type: this.constants.update.fail,
-			error: response.responseBody,
-			params
-		});
-	}
-	destroyReturnedPayload(response, params) {
-		this.dispatch({
-			type: this.constants.destroy.payload,
-			data: response.responseBody,
-			params
-		});
-	}
-	destroyReturnedFail(response, params) {
-		this.dispatch({
-			type: this.constants.destroy.fail,
-			error: response.responseBody,
-			params
-		});
+	registerAction(actionName) {
+		const ACTIONPREFIX = RESTCONNECTORCONSTANT+this.uniqueDispatchNamespace;
+		this.constants = {
+			...this.constants,
+			[actionName]: {
+				dispatch: ACTIONPREFIX+`.${actionName}.DISPATCH`,
+				payload: ACTIONPREFIX+`.${actionName}.PAYLOAD`,
+				fail: ACTIONPREFIX+`.${actionName}.FAIL`
+			}
+		};
+		this["handle"+capitalizeFirstLetter(actionName)+"Return"] = function({dispatch, getState, response, params}) {
+			if (response.status >= 200 && response.status < 300) {
+				dispatch({
+					type: this.constants[actionName].payload,
+					data: response.responseBody,
+					params
+				});
+			}
+			else {
+				dispatch({
+					type: this.constants[actionName].fail,
+					error: response.responseBody,
+					params
+				});
+			}
+		};
 	}
 }
